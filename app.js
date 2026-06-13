@@ -1,57 +1,8 @@
-const STORAGE_KEY = "secondary-school-alumni-records";
-const SESSION_KEY = "secondary-school-current-member";
-const ADMIN_SESSION_KEY = "secondary-school-admin-session";
-const ADMIN_PASSWORD_KEY = "secondary-school-admin-password";
-const ADMIN_USERNAME = "admin";
-const DEFAULT_ADMIN_PASSWORD = "demosa014";
+const API_BASE = "/api";
+const TOKEN_KEY = "demosa-session-token";
 
-const seedMembers = [
-  {
-    id: "seed-1",
-    fullName: "Aisha Mohammed",
-    email: "aisha@example.com",
-    phone: "+234 800 123 4567",
-    startedClass: "JSS 1",
-    leftClass: "Graduated",
-    jsClass: "2008",
-    ssClass: "2011",
-    placement: "Science",
-    maritalStatus: "Married",
-    address: "Kano, Nigeria",
-    workplace: "Federal Medical Centre",
-    professionalExperience: "Healthcare professional with experience in clinical service and community health outreach.",
-    password: "2348001234567",
-    photo: "",
-    status: "approved",
-    deceased: false,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "seed-2",
-    fullName: "Daniel Okafor",
-    email: "daniel@example.com",
-    phone: "+234 803 222 7788",
-    startedClass: "JSS 2",
-    leftClass: "SS 3",
-    jsClass: "",
-    ssClass: "2010",
-    placement: "Commercial",
-    maritalStatus: "Single",
-    address: "Abuja, Nigeria",
-    workplace: "Zenith Bank",
-    professionalExperience: "Banking and finance professional with experience in customer relationship management.",
-    password: "2348032227788",
-    photo: "",
-    status: "approved",
-    deceased: false,
-    createdAt: new Date().toISOString()
-  }
-];
-
-let members = loadMembers();
-let currentMemberId = sessionStorage.getItem(SESSION_KEY) || "";
-let adminLoggedIn = sessionStorage.getItem(ADMIN_SESSION_KEY) === "true";
-let adminPassword = localStorage.getItem(ADMIN_PASSWORD_KEY) || DEFAULT_ADMIN_PASSWORD;
+let members = [];
+let currentUser = null;
 let selectedMemberId = "";
 let pendingPhoto = "";
 
@@ -84,9 +35,7 @@ const menuToggle = document.querySelector("#menuToggle");
 
 document.querySelectorAll(".nav-button").forEach((button) => {
   button.addEventListener("click", () => {
-    if (button.dataset.view) {
-      switchView(button.dataset.view);
-    }
+    if (button.dataset.view) switchView(button.dataset.view);
     closeMobileMenu();
   });
 });
@@ -105,140 +54,64 @@ menuToggle.addEventListener("click", () => {
 });
 
 window.addEventListener("resize", () => {
-  if (window.matchMedia("(min-width: 641px)").matches) {
-    closeMobileMenu();
-  }
+  if (window.matchMedia("(min-width: 641px)").matches) closeMobileMenu();
 });
 
-registrationForm.addEventListener("submit", (event) => {
+registrationForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const record = buildRecord(new FormData(registrationForm), "pending", pendingPhoto);
-  members.unshift(record);
-  saveMembers();
-  registrationForm.reset();
-  clearPhotoPreview();
-  render();
-  switchView("login");
-  showToast("Registration submitted. Login will work after admin approval.");
+  try {
+    await apiForm("/register", new FormData(registrationForm));
+    registrationForm.reset();
+    clearPhotoPreview();
+    switchView("login");
+    showToast("Registration submitted. Login will work after admin approval.");
+  } catch (error) {
+    showToast(error.message);
+  }
 });
 
 registrationForm.addEventListener("reset", () => {
   window.setTimeout(clearPhotoPreview, 0);
 });
 
-adminAddForm.addEventListener("submit", (event) => {
+adminAddForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const record = buildRecord(new FormData(adminAddForm), "approved", "");
-  members.unshift(record);
-  saveMembers();
-  adminAddForm.reset();
-  render();
-  showToast("Member added and approved.");
+  try {
+    await apiForm("/admin/members", new FormData(adminAddForm), { auth: true });
+    adminAddForm.reset();
+    await refreshMembers();
+    showToast("Member added and approved.");
+  } catch (error) {
+    showToast(error.message);
+  }
 });
 
-loginForm.addEventListener("submit", (event) => {
+loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(loginForm);
-  const identifier = clean(formData.get("identifier")).toLowerCase();
-  const password = clean(formData.get("password"));
-
-  if (identifier === ADMIN_USERNAME && password === adminPassword) {
-    adminLoggedIn = true;
-    currentMemberId = "";
-    selectedMemberId = "";
-    sessionStorage.removeItem(SESSION_KEY);
-    sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
+  try {
+    const result = await apiJson("/login", {
+      method: "POST",
+      body: {
+        identifier: clean(formData.get("identifier")),
+        password: clean(formData.get("password"))
+      }
+    });
+    sessionStorage.setItem(TOKEN_KEY, result.token);
     loginForm.reset();
-    render();
-    switchView("admin");
-    showToast("Admin login successful.");
-    return;
+    await loadSession();
+    await refreshMembers();
+    switchView(result.role === "admin" ? "admin" : "dashboard");
+    showToast(result.role === "admin" ? "Admin login successful." : `Welcome, ${result.member.fullName}.`);
+  } catch (error) {
+    showToast(error.message);
   }
-
-  const member = members.find((item) => {
-    return (
-      item.status === "approved" &&
-      !item.deceased &&
-      item.email.toLowerCase() === identifier &&
-      getMemberPassword(item) === password
-    );
-  });
-
-  if (!member) {
-    showToast("Invalid login details or account not approved.");
-    return;
-  }
-
-  currentMemberId = member.id;
-  adminLoggedIn = false;
-  sessionStorage.removeItem(ADMIN_SESSION_KEY);
-  sessionStorage.setItem(SESSION_KEY, currentMemberId);
-  loginForm.reset();
-  render();
-  switchView("dashboard");
-  showToast(`Welcome, ${member.fullName}.`);
 });
 
-memberPasswordForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const member = getCurrentMember();
-  if (!member) {
-    switchView("login");
-    return;
-  }
-
-  const formData = new FormData(memberPasswordForm);
-  const currentPassword = clean(formData.get("currentPassword"));
-  const newPassword = clean(formData.get("newPassword"));
-  const confirmPassword = clean(formData.get("confirmPassword"));
-
-  if (currentPassword !== getMemberPassword(member)) {
-    showToast("Current password is incorrect.");
-    return;
-  }
-
-  if (newPassword !== confirmPassword) {
-    showToast("New passwords do not match.");
-    return;
-  }
-
-  updateMember(member.id, { password: newPassword });
-  memberPasswordForm.reset();
-  showToast("Member password updated.");
-});
-
-adminPasswordForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const formData = new FormData(adminPasswordForm);
-  const currentPassword = clean(formData.get("currentPassword"));
-  const newPassword = clean(formData.get("newPassword"));
-  const confirmPassword = clean(formData.get("confirmPassword"));
-
-  if (!adminLoggedIn) {
-    switchView("login");
-    return;
-  }
-
-  if (currentPassword !== adminPassword) {
-    showToast("Current admin password is incorrect.");
-    return;
-  }
-
-  if (newPassword !== confirmPassword) {
-    showToast("New admin passwords do not match.");
-    return;
-  }
-
-  adminPassword = newPassword;
-  localStorage.setItem(ADMIN_PASSWORD_KEY, adminPassword);
-  adminPasswordForm.reset();
-  showToast("Admin password updated.");
-});
-
-logoutButton.addEventListener("click", logoutMember);
-headerLogoutButton.addEventListener("click", logoutMember);
-adminLogoutButton.addEventListener("click", logoutAdmin);
-headerAdminLogoutButton.addEventListener("click", logoutAdmin);
+logoutButton.addEventListener("click", logoutCurrentUser);
+headerLogoutButton.addEventListener("click", logoutCurrentUser);
+adminLogoutButton.addEventListener("click", logoutCurrentUser);
+headerAdminLogoutButton.addEventListener("click", logoutCurrentUser);
 
 profileForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -247,28 +120,25 @@ profileForm.addEventListener("submit", async (event) => {
     switchView("login");
     return;
   }
+  try {
+    await apiForm(`/members/${member.id}`, new FormData(profileForm), { method: "PUT", auth: true });
+    profilePhotoInput.value = "";
+    await loadSession();
+    await refreshMembers();
+    showToast("Profile updated.");
+  } catch (error) {
+    showToast(error.message);
+  }
+});
 
-  const formData = new FormData(profileForm);
-  const photoFile = profilePhotoInput.files[0];
-  const updates = {
-    fullName: clean(formData.get("fullName")),
-    email: clean(formData.get("email")),
-    phone: clean(formData.get("phone")),
-    startedClass: clean(formData.get("startedClass")),
-    leftClass: clean(formData.get("leftClass")),
-    jsClass: clean(formData.get("jsClass")),
-    ssClass: clean(formData.get("ssClass")),
-    placement: clean(formData.get("placement")),
-    maritalStatus: clean(formData.get("maritalStatus")),
-    address: clean(formData.get("address")),
-    workplace: clean(formData.get("workplace")),
-    professionalExperience: clean(formData.get("professionalExperience")),
-    photo: photoFile ? await readImage(photoFile) : member.photo
-  };
+memberPasswordForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await changePassword(memberPasswordForm, "Member password updated.");
+});
 
-  updateMember(member.id, updates);
-  profilePhotoInput.value = "";
-  showToast("Profile updated.");
+adminPasswordForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await changePassword(adminPasswordForm, "Admin password updated.");
 });
 
 photoInput.addEventListener("change", async () => {
@@ -277,7 +147,6 @@ photoInput.addEventListener("change", async () => {
     clearPhotoPreview();
     return;
   }
-
   pendingPhoto = await readImage(file);
   photoPreview.src = pendingPhoto;
   photoPreview.hidden = false;
@@ -287,186 +156,178 @@ photoInput.addEventListener("change", async () => {
 memberSearch.addEventListener("input", renderDirectory);
 dashboardMemberSearch.addEventListener("input", renderDashboardMembers);
 placementFilter.addEventListener("change", renderDirectory);
-
 membersList.addEventListener("click", handleMemberCardClick);
 dashboardMembersList.addEventListener("click", handleMemberCardClick);
 
-pendingList.addEventListener("click", (event) => {
+pendingList.addEventListener("click", async (event) => {
   const action = event.target.dataset.action;
   const id = event.target.dataset.id;
   if (!action || !id) return;
-
-  if (action === "approve") {
-    updateMember(id, { status: "approved" });
-    showToast("Member approved. They can now login.");
-  }
-
-  if (action === "reject") {
-    members = members.filter((member) => member.id !== id);
-    saveMembers();
-    render();
-    showToast("Pending registration removed.");
+  try {
+    if (action === "approve") {
+      await apiJson(`/members/${id}/approve`, { method: "POST", auth: true });
+      showToast("Member approved. They can now login.");
+    }
+    if (action === "reject") {
+      await apiJson(`/members/${id}`, { method: "DELETE", auth: true });
+      showToast("Pending registration removed.");
+    }
+    await refreshMembers();
+  } catch (error) {
+    showToast(error.message);
   }
 });
 
-adminMembersList.addEventListener("click", (event) => {
+adminMembersList.addEventListener("click", async (event) => {
   const action = event.target.dataset.action;
   const id = event.target.dataset.id;
   if (!action || !id) return;
-
   const member = members.find((item) => item.id === id);
   if (!member) return;
-
-  if (action === "deceased") {
-    const nextValue = !member.deceased;
-    updateMember(id, { deceased: nextValue });
-    if (nextValue && currentMemberId === id) {
-      currentMemberId = "";
-      sessionStorage.removeItem(SESSION_KEY);
+  try {
+    if (action === "deceased") {
+      await apiJson(`/members/${id}/deceased`, {
+        method: "POST",
+        auth: true,
+        body: { deceased: !member.deceased }
+      });
+      showToast(!member.deceased ? "Member flagged as deceased." : "Deceased flag removed.");
     }
-    showToast(nextValue ? "Member flagged as deceased." : "Deceased flag removed.");
-  }
-
-  if (action === "remove") {
-    members = members.filter((item) => item.id !== id);
-    if (currentMemberId === id) {
-      currentMemberId = "";
-      sessionStorage.removeItem(SESSION_KEY);
+    if (action === "remove") {
+      await apiJson(`/members/${id}`, { method: "DELETE", auth: true });
+      showToast("Member removed.");
     }
-    saveMembers();
-    render();
-    showToast("Member removed.");
+    await refreshMembers();
+  } catch (error) {
+    showToast(error.message);
   }
 });
 
-render();
+initialize();
 
-function loadMembers() {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (!stored) return seedMembers;
+async function initialize() {
+  await loadSession();
+  await refreshMembers();
+  render();
+}
 
+async function loadSession() {
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  if (!token) {
+    currentUser = null;
+    return;
+  }
   try {
-    const parsed = JSON.parse(stored);
-    return Array.isArray(parsed) ? parsed.map(withMemberPassword) : seedMembers;
+    currentUser = await apiJson("/me", { auth: true });
   } catch {
-    return seedMembers;
+    sessionStorage.removeItem(TOKEN_KEY);
+    currentUser = null;
   }
 }
 
-function saveMembers() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
+async function refreshMembers() {
+  if (!currentUser) {
+    members = [];
+    render();
+    return;
+  }
+  const status = currentUser.role === "admin" ? "all" : "approved";
+  const result = await apiJson(`/members?status=${status}`, { auth: true });
+  members = result.members || [];
+  render();
 }
 
-function buildRecord(formData, status, photo) {
-  return {
-    id: makeId(),
-    fullName: clean(formData.get("fullName")),
-    email: clean(formData.get("email")),
-    phone: clean(formData.get("phone")),
-    startedClass: clean(formData.get("startedClass")),
-    leftClass: clean(formData.get("leftClass")),
-    jsClass: clean(formData.get("jsClass")),
-    ssClass: clean(formData.get("ssClass")),
-    placement: clean(formData.get("placement")),
-    maritalStatus: clean(formData.get("maritalStatus")),
-    address: clean(formData.get("address")),
-    workplace: clean(formData.get("workplace")),
-    professionalExperience: clean(formData.get("professionalExperience")),
-    password: clean(formData.get("password")) || normalizePhone(formData.get("phone")) || "password123",
-    photo,
-    status,
-    deceased: false,
-    createdAt: new Date().toISOString()
-  };
+async function apiJson(path, options = {}) {
+  const headers = { Accept: "application/json" };
+  if (options.body) headers["Content-Type"] = "application/json";
+  if (options.auth) headers.Authorization = `Bearer ${sessionStorage.getItem(TOKEN_KEY) || ""}`;
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: options.method || "GET",
+    headers,
+    body: options.body ? JSON.stringify(options.body) : undefined
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "Request failed");
+  return payload;
 }
 
-function makeId() {
-  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+async function apiForm(path, formData, options = {}) {
+  if (options.auth) {
+    const token = sessionStorage.getItem(TOKEN_KEY) || "";
+    const response = await fetch(`${API_BASE}${path}`, {
+      method: options.method || "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "Request failed");
+    return payload;
+  }
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: options.method || "POST",
+    body: formData
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "Request failed");
+  return payload;
 }
 
-function clean(value) {
-  return String(value || "").trim();
+async function changePassword(form, successMessage) {
+  const formData = new FormData(form);
+  try {
+    await apiJson("/password", {
+      method: "POST",
+      auth: true,
+      body: {
+        currentPassword: clean(formData.get("currentPassword")),
+        newPassword: clean(formData.get("newPassword")),
+        confirmPassword: clean(formData.get("confirmPassword"))
+      }
+    });
+    form.reset();
+    showToast(successMessage);
+  } catch (error) {
+    showToast(error.message);
+  }
 }
 
-function normalizePhone(value) {
-  return clean(value).replace(/\D/g, "");
-}
-
-function withMemberPassword(member) {
-  return {
-    ...member,
-    password: getMemberPassword(member)
-  };
-}
-
-function getMemberPassword(member) {
-  return member.password || normalizePhone(member.phone) || "password123";
-}
-
-function getCurrentMember() {
-  return members.find((member) => member.id === currentMemberId && member.status === "approved" && !member.deceased);
-}
-
-function logoutMember() {
-  currentMemberId = "";
+async function logoutCurrentUser() {
+  try {
+    await apiJson("/logout", { method: "POST", auth: true });
+  } catch {
+    // Logging out locally still matters if the server session already expired.
+  }
+  currentUser = null;
+  members = [];
   selectedMemberId = "";
-  sessionStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
   render();
   switchView("login");
   showToast("You have logged out.");
 }
 
-function logoutAdmin() {
-  adminLoggedIn = false;
-  sessionStorage.removeItem(ADMIN_SESSION_KEY);
-  render();
-  switchView("login");
-  showToast("Admin logged out.");
+function getCurrentMember() {
+  return currentUser && currentUser.role === "member" ? currentUser.member : null;
 }
 
-function closeMobileMenu() {
-  appHeader.classList.remove("menu-open");
-  menuToggle.setAttribute("aria-expanded", "false");
-  menuToggle.setAttribute("aria-label", "Open menu");
-}
-
-function updateMember(id, updates) {
-  members = members.map((member) => {
-    if (member.id !== id) return member;
-    return { ...member, ...updates };
-  });
-  saveMembers();
-  render();
+function isAdmin() {
+  return currentUser && currentUser.role === "admin";
 }
 
 function switchView(viewName) {
   let targetView = viewName;
   const protectedMemberViews = ["dashboard", "directory", "memberDetail"];
-
-  if (protectedMemberViews.includes(viewName) && !getCurrentMember()) {
-    targetView = "login";
-  }
-
-  if (viewName === "admin" && !adminLoggedIn) {
-    targetView = "login";
-  }
+  if (protectedMemberViews.includes(viewName) && !getCurrentMember()) targetView = "login";
+  if (viewName === "admin" && !isAdmin()) targetView = "login";
 
   document.querySelectorAll(".view").forEach((view) => {
     view.classList.toggle("active", view.id === targetView);
   });
-
   document.querySelectorAll(".nav-button").forEach((button) => {
     button.classList.toggle("active", button.dataset.view === targetView);
   });
-
-  if (protectedMemberViews.includes(viewName) && targetView === "login") {
-    showToast("Please login before opening member pages.");
-  }
-
-  if (viewName === "admin" && targetView === "login") {
-    showToast("Please login as admin first.");
-  }
+  if (protectedMemberViews.includes(viewName) && targetView === "login") showToast("Please login before opening member pages.");
+  if (viewName === "admin" && targetView === "login") showToast("Please login as admin first.");
 }
 
 function render() {
@@ -478,34 +339,21 @@ function render() {
 }
 
 function renderAuthState() {
-  const loggedIn = Boolean(getCurrentMember());
+  const memberLoggedIn = Boolean(getCurrentMember());
+  const adminLoggedIn = isAdmin();
   document.querySelectorAll(".guest-only").forEach((element) => {
-    element.classList.toggle("hidden", loggedIn);
+    element.classList.toggle("hidden", memberLoggedIn || adminLoggedIn);
   });
-
   document.querySelectorAll(".member-only").forEach((element) => {
-    element.classList.toggle("hidden", !loggedIn);
+    element.classList.toggle("hidden", !memberLoggedIn);
   });
-
   document.querySelectorAll(".admin-only").forEach((element) => {
     element.classList.toggle("hidden", !adminLoggedIn);
   });
-
-  if (!loggedIn && document.querySelector("#dashboard").classList.contains("active")) {
-    switchView("login");
-  }
-
-  if (!loggedIn && document.querySelector("#directory").classList.contains("active")) {
-    switchView("login");
-  }
-
-  if (!loggedIn && document.querySelector("#memberDetail").classList.contains("active")) {
-    switchView("login");
-  }
-
-  if (!adminLoggedIn && document.querySelector("#admin").classList.contains("active")) {
-    switchView("login");
-  }
+  if (!memberLoggedIn && document.querySelector("#dashboard").classList.contains("active")) switchView("login");
+  if (!memberLoggedIn && document.querySelector("#directory").classList.contains("active")) switchView("login");
+  if (!memberLoggedIn && document.querySelector("#memberDetail").classList.contains("active")) switchView("login");
+  if (!adminLoggedIn && document.querySelector("#admin").classList.contains("active")) switchView("login");
 }
 
 function renderDirectory() {
@@ -515,7 +363,6 @@ function renderDirectory() {
     .filter((member) => member.status === "approved")
     .filter((member) => !placement || member.placement === placement)
     .filter((member) => matchesSearch(member, query));
-
   membersList.innerHTML = approved.length
     ? approved.map(memberCard).join("")
     : emptyState("No approved members match this view.");
@@ -525,15 +372,12 @@ function renderAdmin() {
   const pending = members.filter((member) => member.status === "pending");
   const approved = members.filter((member) => member.status === "approved");
   const deceased = approved.filter((member) => member.deceased);
-
   document.querySelector("#pendingCount").textContent = pending.length;
   document.querySelector("#approvedCount").textContent = approved.length;
   document.querySelector("#deceasedCount").textContent = deceased.length;
-
   pendingList.innerHTML = pending.length
     ? pending.map((member) => adminCard(member, "pending")).join("")
     : emptyState("There are no registrations waiting for approval.");
-
   adminMembersList.innerHTML = approved.length
     ? approved.map((member) => adminCard(member, "approved")).join("")
     : emptyState("No approved members yet.");
@@ -547,7 +391,6 @@ function renderDashboard() {
     dashboardMembersList.innerHTML = "";
     return;
   }
-
   profileSummary.innerHTML = profileSummaryMarkup(member);
   fillProfileForm(member);
   renderDashboardMembers();
@@ -559,12 +402,10 @@ function renderDashboardMembers() {
     dashboardMembersList.innerHTML = "";
     return;
   }
-
   const query = dashboardMemberSearch.value.trim().toLowerCase();
   const approved = members
     .filter((item) => item.status === "approved" && item.id !== member.id)
     .filter((item) => matchesSearch(item, query));
-
   dashboardMembersList.innerHTML = approved.length
     ? approved.map(memberCard).join("")
     : emptyState("No other approved members match this search.");
@@ -573,26 +414,20 @@ function renderDashboardMembers() {
 function handleMemberCardClick(event) {
   const button = event.target.closest("[data-action='view-member']");
   if (!button) return;
-
   selectedMemberId = button.dataset.id;
   renderMemberDetail();
   switchView("memberDetail");
 }
 
 function renderMemberDetail() {
-  const currentMember = getCurrentMember();
-  if (!currentMember) {
+  if (!getCurrentMember()) {
     memberDetailContent.innerHTML = emptyState("Login to view member information.");
     return;
   }
-
   const member = members.find((item) => item.id === selectedMemberId && item.status === "approved");
-  if (!member) {
-    memberDetailContent.innerHTML = emptyState("Select a member from the directory to view their profile.");
-    return;
-  }
-
-  memberDetailContent.innerHTML = memberDetailMarkup(member);
+  memberDetailContent.innerHTML = member
+    ? memberDetailMarkup(member)
+    : emptyState("Select a member from the directory to view their profile.");
 }
 
 function fillProfileForm(member) {
@@ -692,22 +527,10 @@ function profileSummaryMarkup(member) {
       <span class="badge">${escapeHtml(member.startedClass)} to ${escapeHtml(member.leftClass)}</span>
       ${member.deceased ? '<span class="badge warning">Deceased</span>' : ""}
     </div>
-    <div class="profile-detail">
-      <span>Phone</span>
-      ${escapeHtml(member.phone)}
-    </div>
-    <div class="profile-detail">
-      <span>Place of work</span>
-      ${member.workplace ? escapeHtml(member.workplace) : "Not provided"}
-    </div>
-    <div class="profile-detail">
-      <span>Professional experience</span>
-      ${member.professionalExperience ? escapeHtml(member.professionalExperience) : "Not provided"}
-    </div>
-    <div class="profile-detail">
-      <span>Address</span>
-      ${member.address ? escapeHtml(member.address) : "Not provided"}
-    </div>
+    <div class="profile-detail"><span>Phone</span>${escapeHtml(member.phone)}</div>
+    <div class="profile-detail"><span>Place of work</span>${member.workplace ? escapeHtml(member.workplace) : "Not provided"}</div>
+    <div class="profile-detail"><span>Professional experience</span>${member.professionalExperience ? escapeHtml(member.professionalExperience) : "Not provided"}</div>
+    <div class="profile-detail"><span>Address</span>${member.address ? escapeHtml(member.address) : "Not provided"}</div>
   `;
 }
 
@@ -724,7 +547,6 @@ function adminCard(member, mode) {
         </button>
         <button class="secondary" data-action="remove" data-id="${member.id}">Remove</button>
       `;
-
   return `
     <article class="list-card">
       <div class="member-top">
@@ -752,7 +574,6 @@ function photoMarkup(member) {
   if (member.photo) {
     return `<img class="member-photo" src="${member.photo}" alt="${escapeHtml(member.fullName)}">`;
   }
-
   return `<div class="member-photo avatar-fallback" aria-hidden="true">${initials(member.fullName)}</div>`;
 }
 
@@ -785,6 +606,10 @@ function readImage(file) {
   });
 }
 
+function clean(value) {
+  return String(value || "").trim();
+}
+
 function escapeHtml(value) {
   return String(value || "")
     .replaceAll("&", "&amp;")
@@ -794,9 +619,15 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function closeMobileMenu() {
+  appHeader.classList.remove("menu-open");
+  menuToggle.setAttribute("aria-expanded", "false");
+  menuToggle.setAttribute("aria-label", "Open menu");
+}
+
 function showToast(message) {
   toast.textContent = message;
   toast.classList.add("show");
   window.clearTimeout(showToast.timer);
-  showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 2600);
+  showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 3000);
 }
