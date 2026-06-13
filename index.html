@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DEMOSA ABU Kongo Annex 014 Alumni Portal</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <img class="brand-logo" src="assets/demosa-logo.jpeg" alt="DEMOSA logo">
+        <div>
+          <h1>Demonstration Old Students Association (DEMOSA) ABU Kongo Annex 014</h1>
+          <p>Demonstration Secondary School, ABU Alumni</p>
+        </div>
+      </div>
+      <button id="menuToggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="primaryNav" aria-label="Open menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav id="primaryNav" class="top-actions" aria-label="Portal sections">
+        <button class="nav-button active" data-view="home">Home</button>
+        <button class="nav-button guest-only" data-view="login">Login</button>
+        <button class="nav-button guest-only" data-view="register">Register</button>
+        <button class="nav-button member-only hidden" data-view="dashboard">Dashboard</button>
+        <button class="nav-button member-only hidden" data-view="directory">Members</button>
+        <button class="nav-button admin-only hidden" data-view="admin">Admin</button>
+        <button id="headerLogoutButton" class="nav-button member-only hidden" type="button">Logout</button>
+        <button id="headerAdminLogoutButton" class="nav-button admin-only hidden" type="button">Admin Logout</button>
+      </nav>
+    </header>
+
+    <main>
+      <section id="home" class="view active" aria-labelledby="home-title">
+        <div class="hero-band">
+          <div class="hero-art">
+            <img src="assets/demosa-logo.jpeg" alt="Demonstration Secondary School Abu Alumni logo">
+          </div>
+          <div class="hero-copy">
+            <h2 id="home-title">Demonstration Old Students Association (DEMOSA) ABU Kongo Annex 014</h2>
+            <blockquote>
+              Unity is the strength that turns classmates into brothers, memories into legacy, and service into a future we build together.
+            </blockquote>
+            <div class="hero-actions">
+              <button type="button" data-view-jump="register">Register</button>
+              <button class="secondary light" type="button" data-view-jump="login">Login</button>
+            </div>
+          </div>
+        </div>
+        <div class="home-grid">
+          <article>
+            <h3>Verified Brotherhood</h3>
+            <p>Every member record is reviewed before access is granted to the alumni directory.</p>
+          </article>
+          <article>
+            <h3>Shared History</h3>
+            <p>Class sets, placements, photos, contact details, and work information stay together in one place.</p>
+          </article>
+          <article>
+            <h3>Stronger Connections</h3>
+            <p>Approved members can login, update their profile, and view fellow old students.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="register" class="view" aria-labelledby="register-title">
+        <div class="section-heading">
+          <h2 id="register-title">Alumni Registration</h2>
+          <p>Submitted registrations wait for admin approval before appearing in the member directory.</p>
+        </div>
+        <form id="registrationForm" class="form-grid">
+          <label>
+            Full name
+            <input name="fullName" type="text" autocomplete="name" required>
+          </label>
+          <label>
+            Email
+            <input name="email" type="email" autocomplete="email" required>
+          </label>
+          <label>
+            Phone number
+            <input name="phone" type="tel" autocomplete="tel" required>
+          </label>
+          <label>
+            Password
+            <input name="password" type="password" autocomplete="new-password" minlength="6" required>
+          </label>
+          <label>
+            Started from class
+            <select name="startedClass" required>
+              <option value="">Select class</option>
+              <option>JSS 1</option>
+              <option>JSS 2</option>
+              <option>JSS 3</option>
+              <option>SS 1</option>
+              <option>SS 2</option>
+              <option>SS 3</option>
+            </select>
+          </label>
+          <label>
+            Left with class
+            <select name="leftClass" required>
+              <option value="">Select class</option>
+              <option>JSS 1</option>
+              <option>JSS 2</option>
+              <option>JSS 3</option>
+              <option>SS 1</option>
+              <option>SS 2</option>
+              <option>SS 3</option>
+              <option>Graduated</option>
+            </select>
+          </label>
+          <label>
+            JS class set
+            <input name="jsClass" type="text" placeholder="Optional">
+          </label>
+          <label>
+            SS class set
+            <input name="ssClass" type="text" placeholder="Optional">
+          </label>
+          <label>
+            Placement
+            <select name="placement" required>
+              <option value="">Select placement</option>
+              <option>Science</option>
+              <option>Art</option>
+              <option>Commercial</option>
+            </select>
+          </label>
+          <label>
+            Marital status
+            <select name="maritalStatus">
+              <option value="">Prefer not to say</option>
+              <option>Single</option>
+              <option>Married</option>
+              <option>Divorced</option>
+              <option>Widowed</option>
+            </select>
+          </label>
+          <label>
+            Place of work
+            <input name="workplace" type="text" autocomplete="organization">
+          </label>
+          <label class="wide">
+            Address
+            <textarea name="address" rows="3" autocomplete="street-address"></textarea>
+          </label>
+          <label class="photo-field wide">
+            Picture upload
+            <input id="photoInput" name="photo" type="file" accept="image/*">
+            <span class="file-help">JPG, PNG, or WebP. A preview will be saved on this device.</span>
+          </label>
+          <div class="preview-row wide">
+            <img id="photoPreview" alt="Selected member preview" hidden>
+            <span id="photoPlaceholder">No picture selected</span>
+          </div>
+          <div class="form-actions wide">
+            <button type="reset" class="secondary">Clear</button>
+            <button type="submit">Submit for Approval</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="login" class="view" aria-labelledby="login-title">
+        <div class="section-heading">
+          <h2 id="login-title">Portal Login</h2>
+          <p>Use member email or admin username with password. The session opens the right dashboard automatically.</p>
+        </div>
+        <form id="loginForm" class="form-grid login-form unified-login">
+          <label>
+            Email or admin username
+            <input name="identifier" type="text" autocomplete="username" required>
+          </label>
+          <label>
+            Password
+            <input name="password" type="password" autocomplete="current-password" required>
+          </label>
+          <div class="form-actions">
+            <button type="submit">Login</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="dashboard" class="view" aria-labelledby="dashboard-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="dashboard-title">Member Dashboard</h2>
+            <p>Update your alumni profile and view other approved members.</p>
+          </div>
+          <button id="logoutButton" class="secondary" type="button">Logout</button>
+        </div>
+        <div class="dashboard-layout">
+          <section class="admin-panel" aria-labelledby="profile-summary-title">
+            <h3 id="profile-summary-title">My Profile</h3>
+            <div id="profileSummary" class="profile-summary"></div>
+          </section>
+          <section class="admin-panel" aria-labelledby="profile-edit-title">
+            <h3 id="profile-edit-title">Update Profile</h3>
+            <form id="profileForm" class="form-grid compact">
+              <label>
+                Full name
+                <input name="fullName" type="text" required>
+              </label>
+              <label>
+                Email
+                <input name="email" type="email" required>
+              </label>
+              <label>
+                Phone number
+                <input name="phone" type="tel" required>
+              </label>
+              <label>
+                Started from class
+                <select name="startedClass" required>
+                  <option>JSS 1</option>
+                  <option>JSS 2</option>
+                  <option>JSS 3</option>
+                  <option>SS 1</option>
+                  <option>SS 2</option>
+                  <option>SS 3</option>
+                </select>
+              </label>
+              <label>
+                Left with class
+                <select name="leftClass" required>
+                  <option>JSS 1</option>
+                  <option>JSS 2</option>
+                  <option>JSS 3</option>
+                  <option>SS 1</option>
+                  <option>SS 2</option>
+                  <option>SS 3</option>
+                  <option>Graduated</option>
+                </select>
+              </label>
+              <label>
+                Placement
+                <select name="placement" required>
+                  <option>Science</option>
+                  <option>Art</option>
+                  <option>Commercial</option>
+                </select>
+              </label>
+              <label>
+                JS class set
+                <input name="jsClass" type="text">
+              </label>
+              <label>
+                SS class set
+                <input name="ssClass" type="text">
+              </label>
+              <label>
+                Marital status
+                <select name="maritalStatus">
+                  <option value="">Prefer not to say</option>
+                  <option>Single</option>
+                  <option>Married</option>
+                  <option>Divorced</option>
+                  <option>Widowed</option>
+                </select>
+              </label>
+              <label>
+                Place of work
+                <input name="workplace" type="text">
+              </label>
+              <label class="wide">
+                Address
+                <textarea name="address" rows="2"></textarea>
+              </label>
+              <label class="photo-field wide">
+                Update picture
+                <input id="profilePhotoInput" name="photo" type="file" accept="image/*">
+                <span class="file-help">Leave empty to keep the current picture.</span>
+              </label>
+              <div class="form-actions wide">
+                <button type="submit">Save Profile</button>
+              </div>
+            </form>
+            <h3 class="password-title">Manage Password</h3>
+            <form id="memberPasswordForm" class="form-grid compact password-form">
+              <label>
+                Current password
+                <input name="currentPassword" type="password" autocomplete="current-password" required>
+              </label>
+              <label>
+                New password
+                <input name="newPassword" type="password" autocomplete="new-password" minlength="6" required>
+              </label>
+              <label>
+                Confirm new password
+                <input name="confirmPassword" type="password" autocomplete="new-password" minlength="6" required>
+              </label>
+              <div class="form-actions wide">
+                <button type="submit">Change Password</button>
+              </div>
+            </form>
+          </section>
+        </div>
+        <section class="dashboard-members" aria-labelledby="dashboard-members-title">
+          <div class="section-heading">
+            <h3 id="dashboard-members-title">Other Members</h3>
+            <input id="dashboardMemberSearch" type="search" placeholder="Search approved members">
+          </div>
+          <div id="dashboardMembersList" class="member-grid"></div>
+        </section>
+      </section>
+
+      <section id="directory" class="view" aria-labelledby="directory-title">
+        <div class="section-heading">
+          <h2 id="directory-title">Approved Members</h2>
+          <p>Only approved alumni records are shown here.</p>
+        </div>
+        <div class="toolbar">
+          <input id="memberSearch" type="search" placeholder="Search name, class, email, placement">
+          <select id="placementFilter">
+            <option value="">All placements</option>
+            <option>Science</option>
+            <option>Art</option>
+            <option>Commercial</option>
+          </select>
+        </div>
+        <div id="membersList" class="member-grid"></div>
+      </section>
+
+      <section id="memberDetail" class="view" aria-labelledby="member-detail-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="member-detail-title">Member Profile</h2>
+            <p>View approved member information and picture.</p>
+          </div>
+          <button class="secondary" type="button" data-view-jump="directory">Back to Members</button>
+        </div>
+        <div id="memberDetailContent"></div>
+      </section>
+
+      <section id="admin" class="view" aria-labelledby="admin-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="admin-title">Admin Dashboard</h2>
+            <p>Approve new registrations, add members directly, or flag an approved member as deceased.</p>
+          </div>
+          <button id="adminLogoutButton" class="secondary" type="button">Logout Admin</button>
+        </div>
+        <div class="stats-grid" aria-label="Membership statistics">
+          <div><strong id="pendingCount">0</strong><span>Pending</span></div>
+          <div><strong id="approvedCount">0</strong><span>Approved</span></div>
+          <div><strong id="deceasedCount">0</strong><span>Deceased</span></div>
+        </div>
+        <div class="admin-layout">
+          <section class="admin-panel" aria-labelledby="pending-title">
+            <h3 id="pending-title">Pending Approval</h3>
+            <div id="pendingList" class="stack-list"></div>
+          </section>
+          <section class="admin-panel" aria-labelledby="manage-title">
+            <h3 id="manage-title">Manage Approved Members</h3>
+            <div id="adminMembersList" class="stack-list"></div>
+          </section>
+        </div>
+        <details class="admin-add">
+          <summary>Add a member directly</summary>
+          <form id="adminAddForm" class="form-grid compact">
+            <label>
+              Full name
+              <input name="fullName" type="text" required>
+            </label>
+            <label>
+              Email
+              <input name="email" type="email" required>
+            </label>
+            <label>
+              Phone number
+              <input name="phone" type="tel" required>
+            </label>
+            <label>
+              Member password
+              <input name="password" type="password" minlength="6" required>
+            </label>
+            <label>
+              Started from class
+              <select name="startedClass" required>
+                <option>JSS 1</option>
+                <option>JSS 2</option>
+                <option>JSS 3</option>
+                <option>SS 1</option>
+                <option>SS 2</option>
+                <option>SS 3</option>
+              </select>
+            </label>
+            <label>
+              Left with class
+              <select name="leftClass" required>
+                <option>Graduated</option>
+                <option>JSS 1</option>
+                <option>JSS 2</option>
+                <option>JSS 3</option>
+                <option>SS 1</option>
+                <option>SS 2</option>
+                <option>SS 3</option>
+              </select>
+            </label>
+            <label>
+              Placement
+              <select name="placement" required>
+                <option>Science</option>
+                <option>Art</option>
+                <option>Commercial</option>
+              </select>
+            </label>
+            <label>
+              JS class set
+              <input name="jsClass" type="text">
+            </label>
+            <label>
+              SS class set
+              <input name="ssClass" type="text">
+            </label>
+            <label>
+              Marital status
+              <select name="maritalStatus">
+                <option value="">Prefer not to say</option>
+                <option>Single</option>
+                <option>Married</option>
+                <option>Divorced</option>
+                <option>Widowed</option>
+              </select>
+            </label>
+            <label>
+              Place of work
+              <input name="workplace" type="text">
+            </label>
+            <label class="wide">
+              Address
+              <textarea name="address" rows="2"></textarea>
+            </label>
+            <div class="form-actions wide">
+              <button type="submit">Add Approved Member</button>
+            </div>
+          </form>
+        </details>
+        <details class="admin-add">
+          <summary>Manage admin password</summary>
+          <form id="adminPasswordForm" class="form-grid compact password-form">
+            <label>
+              Current admin password
+              <input name="currentPassword" type="password" autocomplete="current-password" required>
+            </label>
+            <label>
+              New admin password
+              <input name="newPassword" type="password" autocomplete="new-password" minlength="6" required>
+            </label>
+            <label>
+              Confirm new password
+              <input name="confirmPassword" type="password" autocomplete="new-password" minlength="6" required>
+            </label>
+            <div class="form-actions wide">
+              <button type="submit">Update Admin Password</button>
+            </div>
+          </form>
+        </details>
+      </section>
+    </main>
+
+    <div id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
