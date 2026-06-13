@@ -19,6 +19,7 @@ const seedMembers = [
     maritalStatus: "Married",
     address: "Kano, Nigeria",
     workplace: "Federal Medical Centre",
+    professionalExperience: "Healthcare professional with experience in clinical service and community health outreach.",
     password: "2348001234567",
     photo: "",
     status: "approved",
@@ -38,6 +39,7 @@ const seedMembers = [
     maritalStatus: "Single",
     address: "Abuja, Nigeria",
     workplace: "Zenith Bank",
+    professionalExperience: "Banking and finance professional with experience in customer relationship management.",
     password: "2348032227788",
     photo: "",
     status: "approved",
@@ -260,6 +262,7 @@ profileForm.addEventListener("submit", async (event) => {
     maritalStatus: clean(formData.get("maritalStatus")),
     address: clean(formData.get("address")),
     workplace: clean(formData.get("workplace")),
+    professionalExperience: clean(formData.get("professionalExperience")),
     photo: photoFile ? await readImage(photoFile) : member.photo
   };
 
@@ -368,6 +371,7 @@ function buildRecord(formData, status, photo) {
     maritalStatus: clean(formData.get("maritalStatus")),
     address: clean(formData.get("address")),
     workplace: clean(formData.get("workplace")),
+    professionalExperience: clean(formData.get("professionalExperience")),
     password: clean(formData.get("password")) || normalizePhone(formData.get("phone")) || "password123",
     photo,
     status,
@@ -610,7 +614,8 @@ function matchesSearch(member, query) {
     member.jsClass,
     member.ssClass,
     member.placement,
-    member.workplace
+    member.workplace,
+    member.professionalExperience
   ]
     .join(" ")
     .toLowerCase()
@@ -636,6 +641,7 @@ function memberCard(member) {
       </div>
       <p>${escapeHtml(member.phone)}</p>
       <p>${member.workplace ? escapeHtml(member.workplace) : "Place of work not provided"}</p>
+      <p>${member.professionalExperience ? escapeHtml(member.professionalExperience) : "Professional experience not provided"}</p>
       <p>${member.address ? escapeHtml(member.address) : "Address not provided"}</p>
       <div class="card-actions">
         <button type="button" data-action="view-member" data-id="${member.id}">View Member</button>
@@ -665,6 +671,7 @@ function memberDetailMarkup(member) {
           <div><dt>Address</dt><dd>${member.address ? escapeHtml(member.address) : "Not provided"}</dd></div>
           <div><dt>Marital status</dt><dd>${member.maritalStatus ? escapeHtml(member.maritalStatus) : "Not provided"}</dd></div>
           <div><dt>Place of work</dt><dd>${member.workplace ? escapeHtml(member.workplace) : "Not provided"}</dd></div>
+          <div><dt>Professional experience</dt><dd>${member.professionalExperience ? escapeHtml(member.professionalExperience) : "Not provided"}</dd></div>
         </dl>
       </div>
     </article>
@@ -692,6 +699,10 @@ function profileSummaryMarkup(member) {
     <div class="profile-detail">
       <span>Place of work</span>
       ${member.workplace ? escapeHtml(member.workplace) : "Not provided"}
+    </div>
+    <div class="profile-detail">
+      <span>Professional experience</span>
+      ${member.professionalExperience ? escapeHtml(member.professionalExperience) : "Not provided"}
     </div>
     <div class="profile-detail">
       <span>Address</span>
@@ -731,6 +742,7 @@ function adminCard(member, mode) {
         ${member.deceased ? '<span class="badge warning">Deceased</span>' : ""}
       </div>
       <p>${member.workplace ? escapeHtml(member.workplace) : "Place of work not provided"}</p>
+      <p>${member.professionalExperience ? escapeHtml(member.professionalExperience) : "Professional experience not provided"}</p>
       <div class="list-card-actions">${actions}</div>
     </article>
   `;
