@@ -10,6 +10,12 @@ Use Python 3:
 python server.py
 ```
 
+On this Windows workspace you can also double-click:
+
+```text
+start-server.bat
+```
+
 Then open:
 
 ```text
@@ -17,6 +23,7 @@ http://localhost:8000
 ```
 
 The app must be opened through the backend URL, not directly as `file:///...`, because registrations and logins now use API calls.
+If you do open `index.html` directly, keep the backend running at `http://localhost:8000` so API calls can still reach the database.
 
 ## Default Login
 

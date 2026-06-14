@@ -238,6 +238,11 @@ class Handler(BaseHTTPRequestHandler):
     def do_DELETE(self):
         self.handle_api_write("DELETE")
 
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_cors_headers()
+        self.end_headers()
+
     def read_body(self):
         length = int(self.headers.get("Content-Length", "0"))
         return self.rfile.read(length) if length else b""
@@ -508,6 +513,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
         self.send_response(200)
+        self.send_cors_headers()
         self.send_header("Content-Type", mime)
         self.send_header("Content-Length", str(path.stat().st_size))
         self.end_headers()
@@ -516,10 +522,16 @@ class Handler(BaseHTTPRequestHandler):
     def send_json(self, payload, status=200):
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
+        self.send_cors_headers()
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def send_cors_headers(self):
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
 
 if __name__ == "__main__":
