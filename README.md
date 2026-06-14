@@ -2,6 +2,20 @@
 
 Static frontend plus a dependency-free Python backend for member registration, admin approval, profile updates, photo uploads, login sessions, and SQLite database storage.
 
+## Deploy on Streamlit Community Cloud
+
+Use these settings at `https://share.streamlit.io/deploy`:
+
+```text
+Repository: umarmsnw/Demosa014
+Branch: main
+Main file path: streamlit_app.py
+```
+
+Streamlit Cloud uses `requirements.txt`, so it will install Streamlit automatically.
+
+Note: Streamlit Community Cloud filesystem storage can reset when the app is rebuilt or restarted. For permanent production data, connect the app to a hosted database such as Supabase, Neon, or another managed SQL database.
+
 ## Run Locally
 
 Use Python 3:
